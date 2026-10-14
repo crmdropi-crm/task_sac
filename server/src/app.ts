@@ -13,6 +13,7 @@ import { emitirCsrf, requerirCsrf } from "./auth/csrf";
 import { authRouter } from "./auth/auth.routes";
 import { tasksRouter } from "./tasks/tasks.routes";
 import { usersRouter } from "./users/users.routes";
+import { directorioRouter } from "./users/directorio.routes";
 import { requireAuth } from "./middleware/auth.middleware";
 import {
   agregarCliente,
@@ -68,6 +69,7 @@ export function crearApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/tasks", tasksRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/directorio", directorioRouter);
 
   // 404 para rutas /api desconocidas
   app.use("/api", notFoundApi);

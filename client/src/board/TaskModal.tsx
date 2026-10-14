@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Modal } from "../components/Modal";
 import { api, ApiError } from "../lib/api";
 import { useToast } from "../components/Toasts";
-import { Estado, ItemHistorial, Tarea, UsuarioAdmin } from "../lib/types";
+import { Estado, ItemHistorial, ResponsableMini, Tarea } from "../lib/types";
 import { ESTADOS } from "../lib/types";
 import { fechaHora } from "../lib/format";
 
@@ -10,7 +10,7 @@ interface Props {
   tarea: Tarea | null; // null => nueva
   esAdmin: boolean;
   miUsuarioId: string;
-  responsables: UsuarioAdmin[];
+  usuarios: ResponsableMini[];
   onCerrar: () => void;
   onGuardado: () => void;
   onEliminado: () => void;
@@ -20,7 +20,7 @@ export function TaskModal({
   tarea,
   esAdmin,
   miUsuarioId,
-  responsables,
+  usuarios,
   onCerrar,
   onGuardado,
   onEliminado,
@@ -36,6 +36,9 @@ export function TaskModal({
   const [trabajo, setTrabajo] = useState(tarea?.trabajo ?? "");
   const [responsableId, setResponsableId] = useState(
     tarea?.responsableId ?? miUsuarioId
+  );
+  const [coResponsableId, setCoResponsableId] = useState(
+    tarea?.coResponsableId ?? ""
   );
 
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +71,7 @@ export function TaskModal({
       fechaInicio: fechaInicio || null,
       fechaFin: fechaFin || null,
       trabajo: trabajo || null,
+      coResponsableId: coResponsableId || null,
     };
     if (esAdmin) payload.responsableId = responsableId;
 
@@ -218,22 +222,41 @@ export function TaskModal({
           </div>
         </div>
 
-        {esAdmin && (
+        <div className="fila">
+          {esAdmin && (
+            <div className="campo">
+              <label>Responsable (líder)</label>
+              <select
+                className="select"
+                value={responsableId}
+                onChange={(e) => setResponsableId(e.target.value)}
+              >
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="campo">
-            <label>Responsable</label>
+            <label>Co-responsable</label>
             <select
               className="select"
-              value={responsableId}
-              onChange={(e) => setResponsableId(e.target.value)}
+              value={coResponsableId}
+              onChange={(e) => setCoResponsableId(e.target.value)}
             >
-              {responsables.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre} ({u.correo})
-                </option>
-              ))}
+              <option value="">— Sin co-responsable —</option>
+              {usuarios
+                .filter((u) => u.id !== responsableId)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre}
+                  </option>
+                ))}
             </select>
           </div>
-        )}
+        </div>
 
         {error && <p className="error-text">{error}</p>}
       </form>

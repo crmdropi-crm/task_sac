@@ -21,10 +21,13 @@ import {
   MoverTareaInput,
 } from "./tasks.schema";
 
+const miniUsuario = {
+  select: { id: true, nombre: true, correo: true, cargo: true },
+} as const;
+
 const incluirResponsable = {
-  responsable: {
-    select: { id: true, nombre: true, correo: true, cargo: true },
-  },
+  responsable: miniUsuario,
+  coResponsable: miniUsuario,
 } satisfies Prisma.TareaInclude;
 
 type TareaConResponsable = Prisma.TareaGetPayload<{
@@ -42,10 +45,12 @@ export function serializarTarea(t: TareaConResponsable) {
     trabajo: t.trabajo,
     orden: t.orden,
     responsableId: t.responsableId,
+    coResponsableId: t.coResponsableId,
     creadoPorId: t.creadoPorId,
     creadoEn: t.creadoEn.toISOString(),
     actualizadoEn: t.actualizadoEn.toISOString(),
     responsable: t.responsable,
+    coResponsable: t.coResponsable,
     vencida: estaVencida(t.fechaFin, t.estado),
   };
 }
@@ -54,43 +59,70 @@ function esAdmin(u: UsuarioAutenticado): boolean {
   return u.rol === "admin";
 }
 
-/** Lanza 403/404 si el usuario no puede operar sobre la tarea. */
-function asegurarAcceso(u: UsuarioAutenticado, tarea: { responsableId: string } | null) {
+/**
+ * Lanza 403/404 si el usuario no puede operar sobre la tarea.
+ * Pueden operar: admin, el responsable (líder) y el co-responsable.
+ */
+function asegurarAcceso(
+  u: UsuarioAutenticado,
+  tarea: { responsableId: string; coResponsableId?: string | null } | null
+) {
   if (!tarea) throw new HttpError(404, "Tarea no encontrada");
-  if (!esAdmin(u) && tarea.responsableId !== u.id) {
+  if (
+    !esAdmin(u) &&
+    tarea.responsableId !== u.id &&
+    tarea.coResponsableId !== u.id
+  ) {
     throw new HttpError(403, "No tienes permiso sobre esta tarea");
   }
+}
+
+/** Valida que un usuario exista; devuelve error 400 si no. */
+async function validarUsuarioExiste(id: string) {
+  const existe = await prisma.usuario.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existe) throw new HttpError(400, "El usuario indicado no existe");
 }
 
 export async function listarTareas(
   u: UsuarioAutenticado,
   filtros: FiltrosTareas
 ) {
-  const where: Prisma.TareaWhereInput = {};
+  const and: Prisma.TareaWhereInput[] = [];
 
-  // Visibilidad por rol
+  // Visibilidad por rol: se cuentan responsable (líder) y co-responsable.
+  const esMia = (id: string): Prisma.TareaWhereInput => ({
+    OR: [{ responsableId: id }, { coResponsableId: id }],
+  });
+
   if (!esAdmin(u)) {
-    where.responsableId = u.id; // miembro: solo las suyas
+    and.push(esMia(u.id)); // miembro: solo donde participa
   } else {
     // Admin: por defecto equipo; si pide "mis" o filtra por responsable, aplica.
     if (filtros.vista === "mis") {
-      where.responsableId = u.id;
+      and.push(esMia(u.id));
     } else if (filtros.responsableId) {
-      where.responsableId = filtros.responsableId;
+      and.push(esMia(filtros.responsableId));
     }
   }
 
   if (filtros.trabajo) {
-    where.trabajo = { contains: filtros.trabajo, mode: "insensitive" };
+    and.push({ trabajo: { contains: filtros.trabajo, mode: "insensitive" } });
   }
 
   if (filtros.texto) {
-    where.OR = [
-      { tarea: { contains: filtros.texto, mode: "insensitive" } },
-      { descripcion: { contains: filtros.texto, mode: "insensitive" } },
-      { trabajo: { contains: filtros.texto, mode: "insensitive" } },
-    ];
+    and.push({
+      OR: [
+        { tarea: { contains: filtros.texto, mode: "insensitive" } },
+        { descripcion: { contains: filtros.texto, mode: "insensitive" } },
+        { trabajo: { contains: filtros.texto, mode: "insensitive" } },
+      ],
+    });
   }
+
+  const where: Prisma.TareaWhereInput = and.length ? { AND: and } : {};
 
   const tareas = await prisma.tarea.findMany({
     where,
@@ -157,6 +189,10 @@ export async function crearTarea(u: UsuarioAutenticado, datos: CrearTareaInput) 
     throw new HttpError(403, "No puedes asignar tareas a otra persona");
   }
 
+  // Co-responsable (opcional): cualquiera que cree la tarea puede indicarlo.
+  const coResponsableId = datos.coResponsableId || null;
+  if (coResponsableId) await validarUsuarioExiste(coResponsableId);
+
   const estado = datos.estado ?? "pendiente";
   const orden = await siguienteOrden(responsableId, estado);
 
@@ -174,6 +210,7 @@ export async function crearTarea(u: UsuarioAutenticado, datos: CrearTareaInput) 
       trabajo: datos.trabajo ?? null,
       orden,
       responsableId,
+      coResponsableId,
       creadoPorId: u.id,
       historial: {
         create: { usuarioId: u.id, cambio: "creó la tarea" },
@@ -264,6 +301,18 @@ export async function actualizarTarea(
       datos.responsableId,
       (datos.estado as CrearTareaInput["estado"]) ?? actual!.estado
     );
+  }
+
+  // Co-responsable: lo puede poner/quitar cualquiera que pueda editar la tarea.
+  if (datos.coResponsableId !== undefined) {
+    const nuevoCo = datos.coResponsableId || null;
+    if (nuevoCo !== actual!.coResponsableId) {
+      if (nuevoCo) await validarUsuarioExiste(nuevoCo);
+      cambios.push(nuevoCo ? "co-responsable" : "quitó co-responsable");
+      data.coResponsable = nuevoCo
+        ? { connect: { id: nuevoCo } }
+        : { disconnect: true };
+    }
   }
 
   if (cambios.length === 0) {

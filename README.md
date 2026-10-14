@@ -153,23 +153,31 @@ Los permisos se validan **siempre en el backend** (no solo en la interfaz):
 - **Admin:** crea/edita/desactiva usuarios; ve el tablero de todo el equipo;
   filtra por responsable; crea y asigna tareas a cualquiera; edita y elimina
   cualquier tarea. No se puede quitar/desactivar al **último admin activo**.
-- **Miembro:** solo ve sus propias tareas; crea tareas para sí mismo; edita y
-  mueve solo las suyas; **no** puede reasignarlas ni ver las de otros.
+- **Miembro:** ve las tareas donde es **responsable (líder)** o **co-responsable**;
+  crea tareas para sí mismo; edita y mueve las suyas (y aquellas donde es
+  co-responsable); **no** puede reasignar el líder ni ver las ajenas.
+- **Co-responsable:** segundo encargado opcional de una tarea. También la ve y
+  puede editarla/moverla. Ponerlo/quitarlo lo puede hacer quien pueda editar la
+  tarea; **reasignar el líder** sigue siendo solo de admin.
 
 ---
 
 ## Importar / exportar CSV
 
-Columnas (iguales a la hoja original):
+Columnas:
 
 ```
-Responsable | Tarea | Descripción | Estado | Fecha Inicio | Fecha Fin | Trabajo
+Responsable | Co-responsable | Tarea | Descripción | Estado | Fecha Inicio | Fecha Fin | Trabajo
 ```
+
+> **Responsable** es el líder de la tarea; **Co-responsable** es opcional (un
+> segundo encargado que también ve y puede editar/mover la tarea).
 
 - **Exportar:** botón **CSV** en la barra (exporta lo que estás viendo, respeta
   los filtros). Incluye BOM para que Excel reconozca los acentos.
-- **Importar (solo admin):** botón **Importar**. El *Responsable* se empareja por
-  **correo** o por **nombre**. Fechas aceptadas: `AAAA-MM-DD` o `DD/MM/AAAA`.
+- **Importar (solo admin):** botón **Importar**. *Responsable* y *Co-responsable*
+  se emparejan por **correo** o por **nombre** (el co-responsable, si no se
+  encuentra o va vacío, se omite). Fechas aceptadas: `AAAA-MM-DD` o `DD/MM/AAAA`.
   Al terminar muestra cuántas se crearon y los errores por fila.
 
 ---

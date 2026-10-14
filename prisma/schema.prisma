@@ -33,9 +33,10 @@ model Usuario {
   creadoEn       DateTime @default(now())
 
   // Relaciones
-  tareasAsignadas Tarea[]          @relation("Responsable")
-  tareasCreadas   Tarea[]          @relation("CreadoPor")
-  historial       HistorialTarea[]
+  tareasAsignadas     Tarea[]          @relation("Responsable")
+  tareasCoResponsable Tarea[]          @relation("CoResponsable")
+  tareasCreadas       Tarea[]          @relation("CreadoPor")
+  historial           HistorialTarea[]
 
   @@map("usuarios")
 }
@@ -55,12 +56,16 @@ model Tarea {
   responsableId String
   responsable   Usuario @relation("Responsable", fields: [responsableId], references: [id])
 
+  coResponsableId String?
+  coResponsable   Usuario? @relation("CoResponsable", fields: [coResponsableId], references: [id])
+
   creadoPorId String
   creadoPor   Usuario @relation("CreadoPor", fields: [creadoPorId], references: [id])
 
   historial HistorialTarea[]
 
   @@index([responsableId])
+  @@index([coResponsableId])
   @@index([estado])
   @@map("tareas")
 }

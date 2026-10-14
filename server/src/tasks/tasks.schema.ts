@@ -27,6 +27,8 @@ export const crearTareaSchema = z
     trabajo: z.string().max(200).optional().nullable(),
     // Solo lo respeta el admin; para miembros se fuerza a sí mismos en el servicio.
     responsableId: z.string().optional(),
+    // Co-responsable opcional ("" o null = ninguno).
+    coResponsableId: z.string().optional().nullable(),
   })
   .refine(
     (d) => validarRangoFechas(d.fechaInicio, d.fechaFin),
@@ -42,6 +44,7 @@ export const actualizarTareaSchema = z
     fechaFin: fechaOpcional,
     trabajo: z.string().max(200).optional().nullable(),
     responsableId: z.string().optional(),
+    coResponsableId: z.string().optional().nullable(),
   })
   .refine(
     (d) => validarRangoFechas(d.fechaInicio, d.fechaFin),

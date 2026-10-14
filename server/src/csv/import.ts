@@ -93,6 +93,12 @@ export async function importarCsv(
       continue;
     }
 
+    // Co-responsable (opcional): se empareja igual; si no se encuentra, se ignora.
+    const refCo = (fila["co-responsable"] ?? fila["coresponsable"] ?? "").trim();
+    const co = refCo
+      ? porCorreo.get(normalizar(refCo)) ?? porNombre.get(normalizar(refCo))
+      : null;
+
     const estado =
       ESTADO_DESDE_ETIQUETA[normalizar(fila["estado"] ?? "")] ?? "pendiente";
 
@@ -121,6 +127,7 @@ export async function importarCsv(
           trabajo: (fila["trabajo"] ?? "").trim() || null,
           orden,
           responsableId: resp.id,
+          coResponsableId: co ? co.id : null,
           creadoPorId: u.id,
           historial: {
             create: { usuarioId: u.id, cambio: "creada por importación CSV" },

@@ -19,6 +19,7 @@ export function TaskCard({ tarea, mostrarResponsable, onAbrir }: Props) {
   };
 
   const resp = tarea.responsable;
+  const co = tarea.coResponsable;
 
   return (
     <div
@@ -45,13 +46,26 @@ export function TaskCard({ tarea, mostrarResponsable, onAbrir }: Props) {
             📅 {fechaCorta(tarea.fechaInicio)} → {fechaCorta(tarea.fechaFin)}
           </span>
         )}
-        {mostrarResponsable && resp && (
-          <span
-            className="avatar"
-            title={resp.nombre}
-            style={{ background: `hsl(${colorAvatar(resp.id)} 60% 45%)` }}
-          >
-            {iniciales(resp.nombre)}
+        {((mostrarResponsable && resp) || co) && (
+          <span className="avatares">
+            {mostrarResponsable && resp && (
+              <span
+                className="avatar"
+                title={`Responsable: ${resp.nombre}`}
+                style={{ background: `hsl(${colorAvatar(resp.id)} 60% 45%)` }}
+              >
+                {iniciales(resp.nombre)}
+              </span>
+            )}
+            {co && (
+              <span
+                className="avatar co"
+                title={`Co-responsable: ${co.nombre}`}
+                style={{ background: `hsl(${colorAvatar(co.id)} 55% 42%)` }}
+              >
+                {iniciales(co.nombre)}
+              </span>
+            )}
           </span>
         )}
       </div>

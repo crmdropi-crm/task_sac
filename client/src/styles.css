@@ -344,6 +344,23 @@ select {
   margin-left: auto;
   flex-shrink: 0;
 }
+.avatares {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.avatares .avatar {
+  margin-left: -8px; /* ligero solape estilo "pila" */
+  border: 2px solid var(--surface);
+}
+.avatares .avatar:first-child {
+  margin-left: 0;
+}
+/* El co-responsable se distingue con un anillo punteado */
+.avatar.co {
+  border-style: dashed;
+}
 
 /* ── Modal ────────────────────────────────────────────── */
 .overlay {

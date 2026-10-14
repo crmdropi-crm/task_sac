@@ -19,11 +19,13 @@ export interface TareaExportable {
   fechaFin: string | null;
   trabajo: string | null;
   responsable?: { nombre: string; correo: string } | null;
+  coResponsable?: { nombre: string; correo: string } | null;
 }
 
 export function tareasACsv(tareas: TareaExportable[]): string {
   const filas = tareas.map((t) => ({
     Responsable: t.responsable?.nombre ?? "",
+    "Co-responsable": t.coResponsable?.nombre ?? "",
     Tarea: t.tarea,
     Descripción: t.descripcion ?? "",
     Estado: ETIQUETA_ESTADO[t.estado] ?? t.estado,
@@ -36,6 +38,7 @@ export function tareasACsv(tareas: TareaExportable[]): string {
     header: true,
     columns: [
       "Responsable",
+      "Co-responsable",
       "Tarea",
       "Descripción",
       "Estado",

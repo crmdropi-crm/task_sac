@@ -15,7 +15,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/Toasts";
-import { ESTADOS, Estado, Filtros, Tarea, UsuarioAdmin } from "../lib/types";
+import { ESTADOS, Estado, Filtros, ResponsableMini, Tarea } from "../lib/types";
 import { Column } from "./Column";
 import { Toolbar } from "./Toolbar";
 import { TaskModal } from "./TaskModal";
@@ -29,7 +29,7 @@ export function BoardPage() {
   const esAdmin = usuario?.rol === "admin";
 
   const [tareas, setTareas] = useState<Tarea[]>([]);
-  const [responsables, setResponsables] = useState<UsuarioAdmin[]>([]);
+  const [usuarios, setUsuarios] = useState<ResponsableMini[]>([]);
   const [cargando, setCargando] = useState(true);
   const [filtros, setFiltros] = useState<Filtros>({
     texto: "",
@@ -73,14 +73,13 @@ export function BoardPage() {
     }
   }, [construirQuery, toast]);
 
-  // Carga inicial de responsables (admin)
+  // Directorio de usuarios activos (para selectores de responsable / co-responsable)
   useEffect(() => {
-    if (!esAdmin) return;
     api
-      .get<{ usuarios: UsuarioAdmin[] }>("/api/users")
-      .then((r) => setResponsables(r.usuarios.filter((u) => u.activo)))
+      .get<{ usuarios: ResponsableMini[] }>("/api/directorio")
+      .then((r) => setUsuarios(r.usuarios))
       .catch(() => {});
-  }, [esAdmin]);
+  }, []);
 
   // Recarga al cambiar filtros (con pequeño debounce para el buscador)
   useEffect(() => {
@@ -216,7 +215,7 @@ export function BoardPage() {
         filtros={filtros}
         setFiltros={setFiltros}
         trabajos={trabajos}
-        responsables={responsables}
+        responsables={usuarios}
         tareas={tareas}
         onNueva={() => setModalTarea({ abierto: true, tarea: null })}
         onExportar={exportar}
@@ -267,7 +266,7 @@ export function BoardPage() {
           tarea={modalTarea.tarea}
           esAdmin={esAdmin}
           miUsuarioId={usuario.id}
-          responsables={responsables}
+          usuarios={usuarios}
           onCerrar={() => setModalTarea({ abierto: false, tarea: null })}
           onGuardado={cargarTareas}
           onEliminado={cargarTareas}

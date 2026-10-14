@@ -1,4 +1,4 @@
-import { Estado, Filtros, Tarea, UsuarioAdmin } from "../lib/types";
+import { Estado, Filtros, ResponsableMini, Tarea } from "../lib/types";
 import { ESTADOS } from "../lib/types";
 
 interface Props {
@@ -6,7 +6,7 @@ interface Props {
   filtros: Filtros;
   setFiltros: (f: Filtros) => void;
   trabajos: string[];
-  responsables: UsuarioAdmin[];
+  responsables: ResponsableMini[];
   tareas: Tarea[];
   onNueva: () => void;
   onExportar: () => void;

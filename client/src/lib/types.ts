@@ -31,10 +31,12 @@ export interface Tarea {
   trabajo: string | null;
   orden: number;
   responsableId: string;
+  coResponsableId: string | null;
   creadoPorId: string;
   creadoEn: string;
   actualizadoEn: string;
   responsable: ResponsableMini | null;
+  coResponsable: ResponsableMini | null;
   vencida: boolean;
 }
 

@@ -153,6 +153,35 @@ describe("Permisos: miembro vs admin", () => {
     expect(res.body.tarea.responsableId).toBe(anaId);
   });
 
+  it("un co-responsable (miembro) ve y puede editar la tarea ajena", async () => {
+    // Tarea de Beto con Ana como co-responsable
+    const t = await prisma.tarea.create({
+      data: {
+        tarea: "Con co-responsable",
+        estado: "pendiente",
+        responsableId: beto.id,
+        coResponsableId: anaId,
+        creadoPorId: beto.id,
+        orden: 5,
+      },
+    });
+    const { agent, csrfToken } = await clienteAutenticado(
+      app,
+      "ana@test.com",
+      "secreto123"
+    );
+    // la ve en su listado
+    const lista = await agent.get("/api/tasks");
+    const ids = lista.body.tareas.map((x: { id: string }) => x.id);
+    expect(ids).toContain(t.id);
+    // puede editarla
+    const edit = await agent
+      .patch(`/api/tasks/${t.id}`)
+      .set("x-csrf-token", csrfToken)
+      .send({ descripcion: "editada por co-responsable" });
+    expect(edit.status).toBe(200);
+  });
+
   it("un miembro NO puede entrar a la gestión de usuarios", async () => {
     const { agent } = await clienteAutenticado(app, "ana@test.com", "secreto123");
     const res = await agent.get("/api/users");
