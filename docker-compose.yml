@@ -1,0 +1,52 @@
+# docker-compose para desplegar task_sac en un servidor propio
+# (app + PostgreSQL con volumen persistente).
+#
+# Para Easypanel (reusando el Postgres existente `n8n_postgres`) NO uses el
+# servicio `db` de aquí: ver el README, sección "Despliegue en Easypanel".
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-task_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-task_password}
+      POSTGRES_DB: ${POSTGRES_DB:-task_sac}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-task_user} -d ${POSTGRES_DB:-task_sac}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Publicado SOLO en localhost (dev/pruebas/backup desde el host).
+    # La app lo usa por la red interna de compose (host "db").
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # La app se conecta al servicio "db" por la red interna de compose
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-task_user}:${POSTGRES_PASSWORD:-task_password}@db:5432/${POSTGRES_DB:-task_sac}?schema=public"
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_TTL: ${SESSION_TTL:-8h}
+      COOKIE_NAME: ${COOKIE_NAME:-task_sac_session}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      TZ: ${TZ:-America/Bogota}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_CARGO: ${ADMIN_CARGO:-Administración}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  db_data:

@@ -1,0 +1,81 @@
+// Esquema de Prisma para task_sac
+// Base de datos: PostgreSQL (configurable con la variable DATABASE_URL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  admin
+  miembro
+}
+
+enum EstadoTarea {
+  pendiente
+  revision
+  bloqueo
+  hecho
+}
+
+model Usuario {
+  id             String   @id @default(cuid())
+  nombre         String
+  correo         String   @unique
+  cargo          String?
+  rol            Rol      @default(miembro)
+  contrasenaHash String
+  activo         Boolean  @default(true)
+  creadoEn       DateTime @default(now())
+
+  // Relaciones
+  tareasAsignadas Tarea[]          @relation("Responsable")
+  tareasCreadas   Tarea[]          @relation("CreadoPor")
+  historial       HistorialTarea[]
+
+  @@map("usuarios")
+}
+
+model Tarea {
+  id           String      @id @default(cuid())
+  tarea        String // título
+  descripcion  String?
+  estado       EstadoTarea @default(pendiente)
+  fechaInicio  DateTime?   @db.Date
+  fechaFin     DateTime?   @db.Date
+  trabajo      String? // texto libre: proyecto, área o cliente
+  orden        Int         @default(0) // orden dentro de la columna
+  creadoEn     DateTime    @default(now())
+  actualizadoEn DateTime   @updatedAt
+
+  responsableId String
+  responsable   Usuario @relation("Responsable", fields: [responsableId], references: [id])
+
+  creadoPorId String
+  creadoPor   Usuario @relation("CreadoPor", fields: [creadoPorId], references: [id])
+
+  historial HistorialTarea[]
+
+  @@index([responsableId])
+  @@index([estado])
+  @@map("tareas")
+}
+
+model HistorialTarea {
+  id      String   @id @default(cuid())
+  tareaId String
+  tarea   Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  cambio String // ej. "estado: pendiente → revision"
+  fecha  DateTime @default(now())
+
+  @@index([tareaId])
+  @@map("historial_tareas")
+}
